@@ -53,43 +53,9 @@ $app->get('/user&id={id}', function(Request $request, Response $response){
 });
 
 
+
+
 $app->post('/login', function(Request $request, Response $response){
-    $email = $request->getParam('email');
-    $password = $request->getParam('password');
-
-    $sql = "SELECT q.Email, q.Haslo, q.Dawcy_Id, p.Imie, p.Nazwisko, p.Id
-    FROM DaneLogowaniaDawców as q
-    JOIN Dawcy as p
-    ON q.Dawcy_Id = p.Id
-    WHERE q.Email LIKE :email";
-
-    try{
-      $db = new Database();
-      $db = $db->getConnection();
-      $stmt = $db->prepare($sql);
-      $stmt->bindParam(':email', $email);
-      $stmt->execute();
-
-      $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
-    }catch(PDOException $e){
-      echo '{"error": {"text": '.$e->getMessage().'}}';
-    }
-    $new=new\stdClass();
-    //DODAĆ, JEŻELI HASŁO POPRAWNE TO ZWRACA TOKEN
-    if( $dawca[0]->Haslo==$password) {
-     $new->userId=$dawca[0]->Id;
-     $new->Imie=$dawca[0]->Imie;
-     $new->Nazwisko=$dawca[0]->Nazwisko;
-     $new->token=uniqid();
-   }
-    else {$new = "nope";}
-
-      return json_encode($new);
-
-
-});
-
-$app->post('/loginJWT', function(Request $request, Response $response){
     $email = $request->getParam('email');
     $password = $request->getParam('password');
     $key = "qwerty";
