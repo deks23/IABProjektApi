@@ -38,19 +38,22 @@ $app->post('/user', function(Request $request, Response $response){
   try{
     $decoded =JWT::decode($request->getParam('token'), $key, array('HS256'));
   }catch(\Firebase\JWT\ExpiredException $e){
-    $error = array(
-        "msg" => "experiedExperied"
+    $experiedToken = array(
+        "token" => ""
       );
-      return json_encode($error);
+      return json_encode($experiedToken);
   }
   $data=$decoded->data;
   $id = $data->userId;
 
   $sql="
-  SELECT Imie, Nazwisko
-  FROM Dawcy
-  WHERE id= " . $id ."";
-  //echo isExpired($decoded->exp);
+  SELECT q.Imie, q.Nazwisko, q.Id, w.Dawcy_Id, w.Data
+FROM Dawcy AS q
+JOIN Donacje as w
+ON q.Id=w.Dawcy_Id
+WHERE q.Id= ". $id ."";
+
+
   try {
       $db = new Database();
       $db = $db->getConnection();
@@ -65,12 +68,6 @@ $app->post('/user', function(Request $request, Response $response){
 });
 
 
-//function isExpired ($expireTime){
-  //if(time()>$expireTime){
-    //echo "'expired'";
-  //}
-  //echo 'nothing';
-//}
 
 $app->post('/login', function(Request $request, Response $response){
     $email = $request->getParam('email');
@@ -95,7 +92,7 @@ $app->post('/login', function(Request $request, Response $response){
       echo '{"error": {"text": '.$e->getMessage().'}}';
     }
 
-    //DODAĆ, JEŻELI HASŁO POPRAWNE TO ZWRACA TOKEN
+
     if( $dawca[0]->Haslo==$password) {
      $issuedAt   = time();
      $expire = $issuedAt + 3600;
@@ -108,7 +105,7 @@ $app->post('/login', function(Request $request, Response $response){
         ]
      );
          $jwt=JWT::encode($tokenData, $key);
-         //$decoded =JWT::decode($jwt, $key, array('HS256'));
+
    }
     else {$jwt = "nope";}
       return json_encode($jwt);
