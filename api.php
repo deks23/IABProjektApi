@@ -33,12 +33,24 @@ $app->get('/select', function (Request $request, Response $response) {
     return (json_encode($dawcy));
 });
 
-$app->get('/user&id={id}', function(Request $request, Response $response){
-  $id = $request->getAttribute('id');
+$app->post('/user', function(Request $request, Response $response){
+  $key = "qwerty";
+  try{
+    $decoded =JWT::decode($request->getParam('token'), $key, array('HS256'));
+  }catch(\Firebase\JWT\ExpiredException $e){
+    $error = array(
+        "msg" => "experiedExperied"
+      );
+      return json_encode($error);
+  }
+  $data=$decoded->data;
+  $id = $data->userId;
+
   $sql="
   SELECT Imie, Nazwisko
   FROM Dawcy
   WHERE id= " . $id ."";
+  //echo isExpired($decoded->exp);
   try {
       $db = new Database();
       $db = $db->getConnection();
@@ -53,7 +65,12 @@ $app->get('/user&id={id}', function(Request $request, Response $response){
 });
 
 
-
+//function isExpired ($expireTime){
+  //if(time()>$expireTime){
+    //echo "'expired'";
+  //}
+  //echo 'nothing';
+//}
 
 $app->post('/login', function(Request $request, Response $response){
     $email = $request->getParam('email');
