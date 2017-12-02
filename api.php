@@ -5,7 +5,7 @@ header('Access-Control-Allow-Headers: Content-Type, Content-Range, Content-Dispo
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
-
+use \Firebase\JWT\JWT;
 require 'vendor/autoload.php';
 require 'Database.php';
 
@@ -87,6 +87,48 @@ $app->post('/login', function(Request $request, Response $response){
       return json_encode($new);
 
 
+});
+
+$app->post('/loginJWT', function(Request $request, Response $response){
+    $email = $request->getParam('email');
+    $password = $request->getParam('password');
+    $key = "qwerty";
+
+    $sql = "SELECT q.Email, q.Haslo, q.Dawcy_Id, p.Imie, p.Nazwisko, p.Id
+    FROM DaneLogowaniaDawców as q
+    JOIN Dawcy as p
+    ON q.Dawcy_Id = p.Id
+    WHERE q.Email LIKE :email";
+
+    try{
+      $db = new Database();
+      $db = $db->getConnection();
+      $stmt = $db->prepare($sql);
+      $stmt->bindParam(':email', $email);
+      $stmt->execute();
+
+      $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
+    }catch(PDOException $e){
+      echo '{"error": {"text": '.$e->getMessage().'}}';
+    }
+
+    //DODAĆ, JEŻELI HASŁO POPRAWNE TO ZWRACA TOKEN
+    if( $dawca[0]->Haslo==$password) {
+     $issuedAt   = time();
+     $expire = $issuedAt + 3600;
+
+     $tokenData = array(
+         "iat" => $issuedAt,
+         "exp" => $expire,
+         "data"=> [
+           "userId" => $dawca[0]->Id
+        ]
+     );
+         $jwt=JWT::encode($tokenData, $key);
+         //$decoded =JWT::decode($jwt, $key, array('HS256'));
+   }
+    else {$jwt = "nope";}
+      return json_encode($jwt);
 });
 
 $app->run();
