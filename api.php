@@ -2,7 +2,7 @@
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Content-Range, Content-Disposition, Content-Description');
-
+header('Content-type: application/json; charset=utf-8');
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 use \Firebase\JWT\JWT;
@@ -47,7 +47,7 @@ $app->post('/user', function(Request $request, Response $response){
   $id = $data->userId;
 
   $sql="
-  SELECT q.Imie, q.Nazwisko, q.Id, w.Dawcy_Id, w.Data
+  SELECT q.Imie, q.Nazwisko, q.Id, w.Dawcy_Id, w.Id as IdDonacji, w.Data, w.Uwagi
 FROM Dawcy AS q
 JOIN Donacje as w
 ON q.Id=w.Dawcy_Id
@@ -107,7 +107,7 @@ $app->post('/login', function(Request $request, Response $response){
          $jwt=JWT::encode($tokenData, $key);
 
    }
-    else {$jwt = "nope";}
+    else {$jwt = "failed";}
       return json_encode($jwt);
 });
 
