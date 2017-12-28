@@ -218,4 +218,65 @@ $app->post('/register', function (Request $request, Response $response) {
     return json_encode($response);
 });
 
+
+$app->post('/addUser', function (Request $request, Response $response) {
+    $email = $request->getParam('email');
+    $password = $request->getParam('password');
+    $imie = $request->getParam('imie');
+    $nazwisko = $request->getParam('nazwisko');
+    $dataUrodzenia = $request->getParam('dataUrodzenia');
+    $adres = $request->getParam('adres');
+    $grupaKrwi = $request->getParam('grupaKrwi');
+    
+    $sqlGrupaKrwi = "
+        SELECT Id FROM GrupaKrwi
+        WHERE NazwaGrupyKrwi = :grupa
+    ";
+
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->prepare($sqlGrupaKrwi);
+        $stmt->bindParam(':grupa', $grupaKrwi);
+        $stmt->execute();
+        $IdGrupy = $stmt->fetchAll(PDO::FETCH_OBJ);
+        
+    } catch (PDOException $e) {
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
+    }
+    $IdGrupy = $IdGrupy[0]->Id;
+    $IdGrupy = (int)$IdGrupy;
+    $sql = "
+    BEGIN;
+    INSERT INTO Dawcy (Imie, Nazwisko, DataUrodzenia, GrupaKrwi_Id)
+        VALUES (:imie, :nazwisko, :dataUrodzenia, ".$IdGrupy.");
+        SET @IDK = LAST_INSERT_ID();
+    INSERT INTO DaneLogowaniaDawcow (Email, Dawcy_Id, Haslo)
+        VALUES (:email, @IDK, :password);
+    INSERT INTO AdresyDawcow (Adres, Dawcy_Id)
+        VALUES (:adres, @IDK);
+    COMMIT;";
+
+ 
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':password', $password);
+        $stmt->bindParam(':imie', $imie);
+        $stmt->bindParam(':nazwisko', $nazwisko);
+        $stmt->bindParam(':dataUrodzenia', $dataUrodzenia);
+        $stmt->bindParam(':adres', $adres);
+        $stmt->execute();
+
+        $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $response = "userAdded";
+    } catch (PDOException $e) {
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
+    }
+
+    return json_encode($response);
+});
+
 $app->run();
