@@ -31,7 +31,7 @@ $app->get('/select', function (Request $request, Response $response) {
     return (json_encode($dawcy));
 });
 
-$app->post('/user', function (Request $request, Response $response) {
+$app->post('/userDonations', function (Request $request, Response $response) {
     $key = "qwerty";
     try {
         $decoded = JWT::decode($request->getParam('token'), $key, array('HS256'));
@@ -56,13 +56,50 @@ $app->post('/user', function (Request $request, Response $response) {
         $db = $db->getConnection();
         $stmt = $db->query($sql);
         $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
-
+        
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
 
     return (json_encode($dawca));
 });
+
+
+
+$app->post('/userData', function (Request $request, Response $response) {
+    $key = "qwerty";
+    try {
+        $decoded = JWT::decode($request->getParam('token'), $key, array('HS256'));
+    } catch (\Firebase\JWT\ExpiredException $e) {
+        $experiedToken = array(
+            "token" => "",
+        );
+        return json_encode($experiedToken);
+    }
+    $data = $decoded->data;
+    $id = $data->userId;
+
+
+        $sql = "
+        SELECT Imie, Nazwisko, DataUrodzenia
+        FROM Dawcy 
+        WHERE Id= " . $id . "";
+
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->query($sql);
+        $response = $stmt->fetchAll(PDO::FETCH_OBJ);
+        
+    } catch (PDOException $e) {
+        echo '{"error": 
+                {"text": ' . $e->getMessage() . '}}';
+    }
+
+    
+    return json_encode($response);
+});
+
 
 $app->post('/login', function (Request $request, Response $response) {
     $email = $request->getParam('email');
@@ -152,11 +189,10 @@ $app->post('/register', function (Request $request, Response $response) {
     $imie = $request->getParam('imie');
     $nazwisko = $request->getParam('nazwisko');
     $dataUrodzenia = $request->getParam('dataUrodzenia');
-    
 
     $sql = "
     BEGIN;
-    INSERT INTO Dawcy (Imie, Nazwisko, DataUrodzenia) 
+    INSERT INTO Dawcy (Imie, Nazwisko, DataUrodzenia)
         VALUES (:imie, :nazwisko, :dataUrodzenia);
     INSERT INTO DaneLogowaniaDawcow (Email, Dawcy_Id, Haslo)
         VALUES (:email, LAST_INSERT_ID(), :password);
@@ -174,12 +210,11 @@ $app->post('/register', function (Request $request, Response $response) {
         $stmt->execute();
 
         $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
-        $response="userAdded";
+        $response = "userAdded";
     } catch (PDOException $e) {
-        $response =  '{"error": {"text": ' . $e->getMessage() . '}}';
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
     }
 
-   
     return json_encode($response);
 });
 
