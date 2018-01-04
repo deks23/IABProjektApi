@@ -56,15 +56,13 @@ $app->post('/userDonations', function (Request $request, Response $response) {
         $db = $db->getConnection();
         $stmt = $db->query($sql);
         $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
-        
+
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
 
     return (json_encode($dawca));
 });
-
-
 
 $app->post('/userData', function (Request $request, Response $response) {
     $key = "qwerty";
@@ -79,10 +77,9 @@ $app->post('/userData', function (Request $request, Response $response) {
     $data = $decoded->data;
     $id = $data->userId;
 
-
-        $sql = "
+    $sql = "
         SELECT Imie, Nazwisko, DataUrodzenia
-        FROM Dawcy 
+        FROM Dawcy
         WHERE Id= " . $id . "";
 
     try {
@@ -90,16 +87,14 @@ $app->post('/userData', function (Request $request, Response $response) {
         $db = $db->getConnection();
         $stmt = $db->query($sql);
         $response = $stmt->fetchAll(PDO::FETCH_OBJ);
-        
+
     } catch (PDOException $e) {
-        echo '{"error": 
+        echo '{"error":
                 {"text": ' . $e->getMessage() . '}}';
     }
 
-    
     return json_encode($response);
 });
-
 
 $app->post('/login', function (Request $request, Response $response) {
     $email = $request->getParam('email');
@@ -124,7 +119,7 @@ $app->post('/login', function (Request $request, Response $response) {
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
-
+    if(empty($dawca[0])) return "failed";
     if ($dawca[0]->Haslo == $password) {
         $issuedAt = time();
         $expire = $issuedAt + 3600;
@@ -145,7 +140,7 @@ $app->post('/login', function (Request $request, Response $response) {
 $app->post('/employeeLogin', function (Request $request, Response $response) {
     $email = $request->getParam('email');
     $password = $request->getParam('password');
-    $key = "qwerty";
+    $key = "pracownik";
 
     $sql = "
         SELECT q.Email, q.Haslo, q.Pracownicy_Id, p.Imie, p.Nazwisko, p.Id
@@ -165,21 +160,25 @@ $app->post('/employeeLogin', function (Request $request, Response $response) {
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
+    if(empty($pracownik[0])) return "failed";
+    try {
+        if ($pracownik[0]->Haslo == $password) {
+            $issuedAt = time();
+            $expire = $issuedAt + 3600;
 
-    if ($pracownik[0]->Haslo == $password) {
-        $issuedAt = time();
-        $expire = $issuedAt + 3600;
+            $tokenData = array(
+                "iat" => $issuedAt,
+                "exp" => $expire,
+                "data" => [
+                    "employeeId" => $pracownik[0]->Id,
+                ],
+            );
+            $jwt = JWT::encode($tokenData, $key);
 
-        $tokenData = array(
-            "iat" => $issuedAt,
-            "exp" => $expire,
-            "data" => [
-                "employeeId" => $pracownik[0]->Id,
-            ],
-        );
-        $jwt = JWT::encode($tokenData, $key);
-
-    } else { $jwt = "failed";}
+        } else { $jwt = "failed";}
+    } catch (Exception $e) {
+        $jwt = "failed";
+    }
     return json_encode($jwt);
 });
 
@@ -218,7 +217,6 @@ $app->post('/register', function (Request $request, Response $response) {
     return json_encode($response);
 });
 
-
 $app->post('/addUser', function (Request $request, Response $response) {
     $email = $request->getParam('email');
     $password = $request->getParam('password');
@@ -227,7 +225,7 @@ $app->post('/addUser', function (Request $request, Response $response) {
     $dataUrodzenia = $request->getParam('dataUrodzenia');
     $adres = $request->getParam('adres');
     $grupaKrwi = $request->getParam('grupaKrwi');
-    
+
     $sqlGrupaKrwi = "
         SELECT Id FROM GrupaKrwi
         WHERE NazwaGrupyKrwi = :grupa
@@ -240,16 +238,16 @@ $app->post('/addUser', function (Request $request, Response $response) {
         $stmt->bindParam(':grupa', $grupaKrwi);
         $stmt->execute();
         $IdGrupy = $stmt->fetchAll(PDO::FETCH_OBJ);
-        
+
     } catch (PDOException $e) {
         $response = '{"error": {"text": ' . $e->getMessage() . '}}';
     }
     $IdGrupy = $IdGrupy[0]->Id;
-    $IdGrupy = (int)$IdGrupy;
+    $IdGrupy = (int) $IdGrupy;
     $sql = "
     BEGIN;
     INSERT INTO Dawcy (Imie, Nazwisko, DataUrodzenia, GrupaKrwi_Id)
-        VALUES (:imie, :nazwisko, :dataUrodzenia, ".$IdGrupy.");
+        VALUES (:imie, :nazwisko, :dataUrodzenia, " . $IdGrupy . ");
         SET @IDK = LAST_INSERT_ID();
     INSERT INTO DaneLogowaniaDawcow (Email, Dawcy_Id, Haslo)
         VALUES (:email, @IDK, :password);
@@ -257,7 +255,6 @@ $app->post('/addUser', function (Request $request, Response $response) {
         VALUES (:adres, @IDK);
     COMMIT;";
 
- 
     try {
         $db = new Database();
         $db = $db->getConnection();
