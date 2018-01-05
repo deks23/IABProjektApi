@@ -11,12 +11,14 @@ require 'Database.php';
 
 $app = new \Slim\App;
 
-$app->get('/select', function (Request $request, Response $response) {
+$app->get('/patientList', function (Request $request, Response $response) {
     $sql = "
-        SELECT e.Imie, e.Nazwisko, b.NazwaGrupyKrwi
-        FROM Dawcy as e
-        INNER JOIN GrupaKrwi as b
-        on b.Id= e.GrupaKrwi_Id";
+    SELECT e.Imie, e.Nazwisko, b.NazwaGrupyKrwi, w.Adres, e.DataUrodzenia
+    FROM Dawcy as e
+    LEFT JOIN GrupaKrwi as b
+    on b.Id= e.GrupaKrwi_Id
+    LEFT JOIN AdresyDawcow as w
+    on w.Dawcy_Id=e.Id";
 
     try {
         $db = new Database();
@@ -119,7 +121,10 @@ $app->post('/login', function (Request $request, Response $response) {
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
-    if(empty($dawca[0])) return "failed";
+    if (empty($dawca[0])) {
+        return "failed";
+    }
+
     if ($dawca[0]->Haslo == $password) {
         $issuedAt = time();
         $expire = $issuedAt + 3600;
@@ -160,7 +165,10 @@ $app->post('/employeeLogin', function (Request $request, Response $response) {
     } catch (PDOException $e) {
         echo '{"error": {"text": ' . $e->getMessage() . '}}';
     }
-    if(empty($pracownik[0])) return "failed";
+    if (empty($pracownik[0])) {
+        return "failed";
+    }
+
     try {
         if ($pracownik[0]->Haslo == $password) {
             $issuedAt = time();
