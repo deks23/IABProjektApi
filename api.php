@@ -337,19 +337,14 @@ $app->post('/changePatientData', function (Request $request, Response $response)
     } catch (PDOException $e) {
         $response = '{"error": {"text": ' . $e->getMessage() . '}}';
     }
+   if(!empty($IdGrupy)){
     $IdGrupy = $IdGrupy[0]->Id;
     $IdGrupy = (int) $IdGrupy;
+    
 
     $sql = "
-    BEGIN;
     UPDATE Dawcy SET Imie = :imie, Nazwisko = :nazwisko, DataUrodzenia = :dataUrodzenia, GrupaKrwi_Id = " . $IdGrupy . " WHERE Id =:id; 
-    UPDATE AdresyDawcow SET Adres = :adres WHERE Dawcy_Id = :id;
-    COMMIT;
     ";
-
-
-  
-   echo $adres;
   
     try {
         $db = new Database();
@@ -359,7 +354,43 @@ $app->post('/changePatientData', function (Request $request, Response $response)
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':imie', $imie);
         $stmt->bindParam(':nazwisko', $nazwisko);
-        $stmt->bindParam(':dataUrodzenia', $dataUrodzenia);
+        $stmt->bindParam(':dataUrodzenia', $dataUrodzenia); 
+        $stmt->execute();
+        $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $response = "userAdded";
+    } catch (PDOException $e) {
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
+    }
+    
+   }else{
+    $sql = "
+    UPDATE Dawcy SET Imie = :imie, Nazwisko = :nazwisko, DataUrodzenia = :dataUrodzenia WHERE Id =:id; 
+    ";
+  
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->prepare($sql);
+        
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':imie', $imie);
+        $stmt->bindParam(':nazwisko', $nazwisko);
+        $stmt->bindParam(':dataUrodzenia', $dataUrodzenia); 
+        $stmt->execute();
+        $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $response = "userAdded";
+    } catch (PDOException $e) {
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
+    }
+   }
+
+    $sqlAdres = "UPDATE AdresyDawcow SET Adres = :adres WHERE Dawcy_Id = :id;";
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->prepare($sqlAdres);
+
+        $stmt->bindParam(':id', $id);
         $stmt->bindParam(':adres', $adres);
        
         $stmt->execute();
@@ -371,5 +402,40 @@ $app->post('/changePatientData', function (Request $request, Response $response)
 
     return json_encode($response);
 });
+
+
+
+$app->post('/addDonation', function (Request $request, Response $response) {
+    $data = $request->getParam('date');
+    $uwagi = $request->getParam('info');
+    $id = $request->getParam('id');
+
+    
+
+    $sql = "
+    BEGIN;
+    INSERT INTO Donacje (Data, Dawcy_Id, Uwagi)
+        VALUES (:data, :id, :uwagi);
+    COMMIT;";
+
+    try {
+        $db = new Database();
+        $db = $db->getConnection();
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':data', $data);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':uwagi', $uwagi);
+        
+        $stmt->execute();
+
+        $dawca = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $response = "donationAdded";
+    } catch (PDOException $e) {
+        $response = '{"error": {"text": ' . $e->getMessage() . '}}';
+    }
+
+    return json_encode($response);
+});
+
 
 $app->run();
